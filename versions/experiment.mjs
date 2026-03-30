@@ -1,18 +1,17 @@
 /**
- * PR #20834 + `firstNonAsciiPos`: extends `substr` fast path into non-ASCII sources.
+ * Experiment 1: Use String.fromCharCode instead of fromCodePoint for ASCII,
+ * and inline TextDecoder.decode to avoid bound function overhead.
  */
 
 // oxlint-disable prefer-const
 
-const textDecoder = new TextDecoder("utf-8", { ignoreBOM: true }),
-  decodeStr = textDecoder.decode.bind(textDecoder);
+const textDecoder = new TextDecoder("utf-8", { ignoreBOM: true });
 
-const { fromCodePoint } = String;
+const { fromCharCode } = String;
 
 let firstNonAsciiPos;
 
 export function setup() {
-  // Find first non-ASCII byte in source region
   firstNonAsciiPos = sourceEndPos;
   for (let i = 0; i < sourceEndPos; i++) {
     if (uint8[i] >= 128) {
@@ -31,14 +30,14 @@ export function deserializeStr(pos) {
     return sourceText.substr(pos, len);
   }
   let end = pos + len;
-  if (len > 9) return decodeStr(uint8.subarray(pos, end));
+  if (len > 9) return textDecoder.decode(uint8.subarray(pos, end));
   let out = "",
     c;
   do {
     c = uint8[pos++];
-    if (c < 128) out += fromCodePoint(c);
+    if (c < 128) out += fromCharCode(c);
     else {
-      out += decodeStr(uint8.subarray(pos - 1, end));
+      out += textDecoder.decode(uint8.subarray(pos - 1, end));
       break;
     }
   } while (pos < end);
