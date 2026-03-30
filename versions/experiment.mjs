@@ -1,6 +1,5 @@
 /**
- * Experiment 4: For short ASCII strings (<=9 bytes), collect char codes
- * and use a single fromCharCode call. Falls back to TextDecoder on non-ASCII.
+ * Experiment 6: Extend batch fromCharCode switch to threshold 12.
  */
 
 // oxlint-disable prefer-const
@@ -30,14 +29,13 @@ export function deserializeStr(pos) {
     return sourceText.substr(pos, len);
   }
   let end = pos + len;
-  if (len > 9) return textDecoder.decode(uint8.subarray(pos, end));
+  if (len > 12) return textDecoder.decode(uint8.subarray(pos, end));
   // Check if all bytes are ASCII first
   let allAscii = true;
   for (let i = pos; i < end; i++) {
     if (uint8[i] >= 128) { allAscii = false; break; }
   }
   if (allAscii) {
-    // Single fromCharCode call with all codes
     switch (len) {
       case 1: return fromCharCode(uint8[pos]);
       case 2: return fromCharCode(uint8[pos], uint8[pos+1]);
@@ -48,6 +46,9 @@ export function deserializeStr(pos) {
       case 7: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2], uint8[pos+3], uint8[pos+4], uint8[pos+5], uint8[pos+6]);
       case 8: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2], uint8[pos+3], uint8[pos+4], uint8[pos+5], uint8[pos+6], uint8[pos+7]);
       case 9: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2], uint8[pos+3], uint8[pos+4], uint8[pos+5], uint8[pos+6], uint8[pos+7], uint8[pos+8]);
+      case 10: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2], uint8[pos+3], uint8[pos+4], uint8[pos+5], uint8[pos+6], uint8[pos+7], uint8[pos+8], uint8[pos+9]);
+      case 11: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2], uint8[pos+3], uint8[pos+4], uint8[pos+5], uint8[pos+6], uint8[pos+7], uint8[pos+8], uint8[pos+9], uint8[pos+10]);
+      case 12: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2], uint8[pos+3], uint8[pos+4], uint8[pos+5], uint8[pos+6], uint8[pos+7], uint8[pos+8], uint8[pos+9], uint8[pos+10], uint8[pos+11]);
     }
   }
   return textDecoder.decode(uint8.subarray(pos, end));
