@@ -1,6 +1,6 @@
 /**
- * Experiment 1: Use String.fromCharCode instead of fromCodePoint for ASCII,
- * and inline TextDecoder.decode to avoid bound function overhead.
+ * Experiment 4: For short ASCII strings (<=9 bytes), collect char codes
+ * and use a single fromCharCode call. Falls back to TextDecoder on non-ASCII.
  */
 
 // oxlint-disable prefer-const
@@ -31,15 +31,24 @@ export function deserializeStr(pos) {
   }
   let end = pos + len;
   if (len > 9) return textDecoder.decode(uint8.subarray(pos, end));
-  let out = "",
-    c;
-  do {
-    c = uint8[pos++];
-    if (c < 128) out += fromCharCode(c);
-    else {
-      out += textDecoder.decode(uint8.subarray(pos - 1, end));
-      break;
+  // Check if all bytes are ASCII first
+  let allAscii = true;
+  for (let i = pos; i < end; i++) {
+    if (uint8[i] >= 128) { allAscii = false; break; }
+  }
+  if (allAscii) {
+    // Single fromCharCode call with all codes
+    switch (len) {
+      case 1: return fromCharCode(uint8[pos]);
+      case 2: return fromCharCode(uint8[pos], uint8[pos+1]);
+      case 3: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2]);
+      case 4: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2], uint8[pos+3]);
+      case 5: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2], uint8[pos+3], uint8[pos+4]);
+      case 6: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2], uint8[pos+3], uint8[pos+4], uint8[pos+5]);
+      case 7: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2], uint8[pos+3], uint8[pos+4], uint8[pos+5], uint8[pos+6]);
+      case 8: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2], uint8[pos+3], uint8[pos+4], uint8[pos+5], uint8[pos+6], uint8[pos+7]);
+      case 9: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2], uint8[pos+3], uint8[pos+4], uint8[pos+5], uint8[pos+6], uint8[pos+7], uint8[pos+8]);
     }
-  } while (pos < end);
-  return out;
+  }
+  return textDecoder.decode(uint8.subarray(pos, end));
 }
