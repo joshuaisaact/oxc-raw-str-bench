@@ -29,6 +29,9 @@ const COMPILED_DIR = pathJoin(ROOT_DIR_PATH, "versions-compiled");
 // Version used as baseline for comparison
 const BASELINE = "current";
 
+// Versions to skip
+const SKIP: string[] = [];
+
 // Total time budget per fixture, per version
 const BENCH_TIME_MS = 100;
 // Minimum number of timed rounds
@@ -38,13 +41,12 @@ const WARMUP_ROUNDS = 5;
 
 async function main() {
   // Compile versions
-  const versionFiles = compileVersions();
+  const versionNames = compileVersions();
 
   // Dynamic import of compiled versions
   const versions: Version[] = [];
-  for (const file of versionFiles) {
-    const name = file.replace(/\.mjs$/, "");
-    const url = pathToFileURL(pathJoin(COMPILED_DIR, file)).href;
+  for (const name of versionNames) {
+    const url = pathToFileURL(pathJoin(COMPILED_DIR, `${name}.mjs`)).href;
     const mod = await import(url);
     versions.push({ name, injectState: mod.injectState, deserializeStr: mod.deserializeStr });
   }
@@ -118,7 +120,6 @@ async function main() {
   }
 
   // Format results: time + % difference vs baseline for non-baseline columns
-  const versionNames = versions.map((v) => v.name);
   const fixtureNames = fixtures.map((f) => f.name);
   const formatted = rawTimes.map((row) => {
     const baselineTime = row[0];
@@ -226,29 +227,37 @@ export function injectState(buffer, sourceTextInput, sourceByteLen) {
  * Compile versions.
  *
  * Wrap each `.mjs` file in `versions` directory with boilerplate and write to `versions-compiled` directory.
+ *
+ * @returns Array of version names.
  */
 function compileVersions(): string[] {
   fs.mkdirSync(COMPILED_DIR, { recursive: true });
 
-  const baselineFilename = `${BASELINE}.mjs`;
+  const skipSet = new Set(SKIP);
 
-  const versionFiles = fs
-    .readdirSync(VERSIONS_DIR)
-    .filter((f) => f.endsWith(".mjs"))
-    .sort((a, b) => {
-      // Baseline always first, rest alphabetical
-      if (a === baselineFilename) return -1;
-      if (b === baselineFilename) return 1;
-      return a.localeCompare(b);
-    });
+  const filenames = fs.readdirSync(VERSIONS_DIR);
 
-  for (const filename of versionFiles) {
+  const versionNames: string[] = [];
+  for (const filename of filenames) {
+    if (!filename.endsWith(".mjs")) continue;
+    const name = filename.slice(0, -4);
+    if (skipSet.has(name)) continue;
+
+    versionNames.push(name);
+
     const source = fs.readFileSync(pathJoin(VERSIONS_DIR, filename), "utf8");
     const compiled = BOILERPLATE_HEAD + source;
     fs.writeFileSync(pathJoin(COMPILED_DIR, filename), compiled);
   }
 
-  return versionFiles;
+  versionNames.sort((a, b) => {
+    // Baseline always first, rest alphabetical
+    if (a === BASELINE) return -1;
+    if (b === BASELINE) return 1;
+    return a.localeCompare(b);
+  });
+
+  return versionNames;
 }
 
 await main();
