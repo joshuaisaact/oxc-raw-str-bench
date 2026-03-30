@@ -26,6 +26,9 @@ interface Version {
 const VERSIONS_DIR = pathJoin(ROOT_DIR_PATH, "versions");
 const COMPILED_DIR = pathJoin(ROOT_DIR_PATH, "versions-compiled");
 
+// Version used as baseline for comparison
+const BASELINE = "current";
+
 // Total time budget per fixture, per version
 const BENCH_TIME_MS = 100;
 // Minimum number of timed rounds
@@ -107,39 +110,38 @@ async function main() {
     rawTimes.push(row);
   }
 
-  // Format % difference vs current, with sign padded to 2 digits
+  // Format % difference vs baseline, with sign padded to 2 digits
   function formatPctDiff(pct: number): string {
     const sign = pct <= 0 ? "-" : "+";
     const digits = Math.abs(pct).toFixed(0);
     return `(${sign}${digits.padStart(2)}%)`;
   }
 
-  // Format results: time + % difference vs current for non-current columns
+  // Format results: time + % difference vs baseline for non-baseline columns
   const versionNames = versions.map((v) => v.name);
   const fixtureNames = fixtures.map((f) => f.name);
   const formatted = rawTimes.map((row) => {
-    const currentTime = row[0];
+    const baselineTime = row[0];
     return row.map((t, col) => {
       const time = t.toFixed(3) + "ms";
       if (col === 0) return time;
-      const pct = ((t - currentTime) / currentTime) * 100;
+      const pct = ((t - baselineTime) / baselineTime) * 100;
       return `${time} ${formatPctDiff(pct)}`;
     });
   });
 
-  // "Fastest" column: best version name + its % diff, or "current" if current is fastest
+  // "Fastest" column: best version name + its % diff
   const fastestNames: string[] = [];
   const fastestPcts: string[] = [];
   for (const row of rawTimes) {
-    const currentTime = row[0];
+    const baselineTime = row[0];
     const bestTime = Math.min(...row);
     const bestIdx = row.indexOf(bestTime);
+    fastestNames.push(versionNames[bestIdx]);
     if (bestIdx === 0) {
-      fastestNames.push("current");
       fastestPcts.push("");
     } else {
-      const pct = ((bestTime - currentTime) / currentTime) * 100;
-      fastestNames.push(versionNames[bestIdx]);
+      const pct = ((bestTime - baselineTime) / baselineTime) * 100;
       fastestPcts.push(formatPctDiff(pct));
     }
   }
@@ -194,8 +196,8 @@ async function main() {
       fixtureNames[r].padEnd(nameColWidth),
       nonAsciiPcts[r].padStart(nonAsciiColWidth),
       ...colWidths.map((w, c) => formatted[r][c].padStart(w)),
-      fastestNames[r].padEnd(fastestNameWidth)
-        + (fastestPcts[r] ? " " + fastestPcts[r] : "").padEnd(fastestColWidth - fastestNameWidth),
+      fastestNames[r].padEnd(fastestNameWidth) +
+        (fastestPcts[r] ? " " + fastestPcts[r] : "").padEnd(fastestColWidth - fastestNameWidth),
     ];
     console.log(rowParts.join(sep));
   }
@@ -228,13 +230,15 @@ export function injectState(buffer, sourceTextInput, sourceByteLen) {
 function compileVersions(): string[] {
   fs.mkdirSync(COMPILED_DIR, { recursive: true });
 
+  const baselineFilename = `${BASELINE}.mjs`;
+
   const versionFiles = fs
     .readdirSync(VERSIONS_DIR)
     .filter((f) => f.endsWith(".mjs"))
     .sort((a, b) => {
-      // "current.mjs" always first, rest alphabetical
-      if (a === "current.mjs") return -1;
-      if (b === "current.mjs") return 1;
+      // Baseline always first, rest alphabetical
+      if (a === baselineFilename) return -1;
+      if (b === baselineFilename) return 1;
       return a.localeCompare(b);
     });
 
