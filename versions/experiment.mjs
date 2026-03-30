@@ -1,5 +1,5 @@
 /**
- * Experiment 6: Extend batch fromCharCode switch to threshold 12.
+ * Experiment 7: Extend batch fromCharCode to threshold 16.
  */
 
 // oxlint-disable prefer-const
@@ -29,7 +29,7 @@ export function deserializeStr(pos) {
     return sourceText.substr(pos, len);
   }
   let end = pos + len;
-  if (len > 12) return textDecoder.decode(uint8.subarray(pos, end));
+  if (len > 16) return textDecoder.decode(uint8.subarray(pos, end));
   // Check if all bytes are ASCII first
   let allAscii = true;
   for (let i = pos; i < end; i++) {
@@ -49,6 +49,10 @@ export function deserializeStr(pos) {
       case 10: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2], uint8[pos+3], uint8[pos+4], uint8[pos+5], uint8[pos+6], uint8[pos+7], uint8[pos+8], uint8[pos+9]);
       case 11: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2], uint8[pos+3], uint8[pos+4], uint8[pos+5], uint8[pos+6], uint8[pos+7], uint8[pos+8], uint8[pos+9], uint8[pos+10]);
       case 12: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2], uint8[pos+3], uint8[pos+4], uint8[pos+5], uint8[pos+6], uint8[pos+7], uint8[pos+8], uint8[pos+9], uint8[pos+10], uint8[pos+11]);
+      case 13: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2], uint8[pos+3], uint8[pos+4], uint8[pos+5], uint8[pos+6], uint8[pos+7], uint8[pos+8], uint8[pos+9], uint8[pos+10], uint8[pos+11], uint8[pos+12]);
+      case 14: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2], uint8[pos+3], uint8[pos+4], uint8[pos+5], uint8[pos+6], uint8[pos+7], uint8[pos+8], uint8[pos+9], uint8[pos+10], uint8[pos+11], uint8[pos+12], uint8[pos+13]);
+      case 15: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2], uint8[pos+3], uint8[pos+4], uint8[pos+5], uint8[pos+6], uint8[pos+7], uint8[pos+8], uint8[pos+9], uint8[pos+10], uint8[pos+11], uint8[pos+12], uint8[pos+13], uint8[pos+14]);
+      case 16: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2], uint8[pos+3], uint8[pos+4], uint8[pos+5], uint8[pos+6], uint8[pos+7], uint8[pos+8], uint8[pos+9], uint8[pos+10], uint8[pos+11], uint8[pos+12], uint8[pos+13], uint8[pos+14], uint8[pos+15]);
     }
   }
   return textDecoder.decode(uint8.subarray(pos, end));
