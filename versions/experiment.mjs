@@ -1,5 +1,5 @@
 /**
- * Experiment 7: Extend batch fromCharCode to threshold 16.
+ * Experiment 8: Extend batch fromCharCode to threshold 24.
  */
 
 // oxlint-disable prefer-const
@@ -29,7 +29,7 @@ export function deserializeStr(pos) {
     return sourceText.substr(pos, len);
   }
   let end = pos + len;
-  if (len > 16) return textDecoder.decode(uint8.subarray(pos, end));
+  if (len > 24) return textDecoder.decode(uint8.subarray(pos, end));
   // Check if all bytes are ASCII first
   let allAscii = true;
   for (let i = pos; i < end; i++) {
@@ -53,6 +53,14 @@ export function deserializeStr(pos) {
       case 14: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2], uint8[pos+3], uint8[pos+4], uint8[pos+5], uint8[pos+6], uint8[pos+7], uint8[pos+8], uint8[pos+9], uint8[pos+10], uint8[pos+11], uint8[pos+12], uint8[pos+13]);
       case 15: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2], uint8[pos+3], uint8[pos+4], uint8[pos+5], uint8[pos+6], uint8[pos+7], uint8[pos+8], uint8[pos+9], uint8[pos+10], uint8[pos+11], uint8[pos+12], uint8[pos+13], uint8[pos+14]);
       case 16: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2], uint8[pos+3], uint8[pos+4], uint8[pos+5], uint8[pos+6], uint8[pos+7], uint8[pos+8], uint8[pos+9], uint8[pos+10], uint8[pos+11], uint8[pos+12], uint8[pos+13], uint8[pos+14], uint8[pos+15]);
+      case 17: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2], uint8[pos+3], uint8[pos+4], uint8[pos+5], uint8[pos+6], uint8[pos+7], uint8[pos+8], uint8[pos+9], uint8[pos+10], uint8[pos+11], uint8[pos+12], uint8[pos+13], uint8[pos+14], uint8[pos+15], uint8[pos+16]);
+      case 18: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2], uint8[pos+3], uint8[pos+4], uint8[pos+5], uint8[pos+6], uint8[pos+7], uint8[pos+8], uint8[pos+9], uint8[pos+10], uint8[pos+11], uint8[pos+12], uint8[pos+13], uint8[pos+14], uint8[pos+15], uint8[pos+16], uint8[pos+17]);
+      case 19: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2], uint8[pos+3], uint8[pos+4], uint8[pos+5], uint8[pos+6], uint8[pos+7], uint8[pos+8], uint8[pos+9], uint8[pos+10], uint8[pos+11], uint8[pos+12], uint8[pos+13], uint8[pos+14], uint8[pos+15], uint8[pos+16], uint8[pos+17], uint8[pos+18]);
+      case 20: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2], uint8[pos+3], uint8[pos+4], uint8[pos+5], uint8[pos+6], uint8[pos+7], uint8[pos+8], uint8[pos+9], uint8[pos+10], uint8[pos+11], uint8[pos+12], uint8[pos+13], uint8[pos+14], uint8[pos+15], uint8[pos+16], uint8[pos+17], uint8[pos+18], uint8[pos+19]);
+      case 21: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2], uint8[pos+3], uint8[pos+4], uint8[pos+5], uint8[pos+6], uint8[pos+7], uint8[pos+8], uint8[pos+9], uint8[pos+10], uint8[pos+11], uint8[pos+12], uint8[pos+13], uint8[pos+14], uint8[pos+15], uint8[pos+16], uint8[pos+17], uint8[pos+18], uint8[pos+19], uint8[pos+20]);
+      case 22: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2], uint8[pos+3], uint8[pos+4], uint8[pos+5], uint8[pos+6], uint8[pos+7], uint8[pos+8], uint8[pos+9], uint8[pos+10], uint8[pos+11], uint8[pos+12], uint8[pos+13], uint8[pos+14], uint8[pos+15], uint8[pos+16], uint8[pos+17], uint8[pos+18], uint8[pos+19], uint8[pos+20], uint8[pos+21]);
+      case 23: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2], uint8[pos+3], uint8[pos+4], uint8[pos+5], uint8[pos+6], uint8[pos+7], uint8[pos+8], uint8[pos+9], uint8[pos+10], uint8[pos+11], uint8[pos+12], uint8[pos+13], uint8[pos+14], uint8[pos+15], uint8[pos+16], uint8[pos+17], uint8[pos+18], uint8[pos+19], uint8[pos+20], uint8[pos+21], uint8[pos+22]);
+      case 24: return fromCharCode(uint8[pos], uint8[pos+1], uint8[pos+2], uint8[pos+3], uint8[pos+4], uint8[pos+5], uint8[pos+6], uint8[pos+7], uint8[pos+8], uint8[pos+9], uint8[pos+10], uint8[pos+11], uint8[pos+12], uint8[pos+13], uint8[pos+14], uint8[pos+15], uint8[pos+16], uint8[pos+17], uint8[pos+18], uint8[pos+19], uint8[pos+20], uint8[pos+21], uint8[pos+22], uint8[pos+23]);
     }
   }
   return textDecoder.decode(uint8.subarray(pos, end));
