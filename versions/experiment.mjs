@@ -1,8 +1,6 @@
 /**
- * Experiment 26: Add lastNonAsciiSrcEnd to extend fast path.
- * Source strings before firstNonAsciiPos: sourceText.substr
- * Source strings after lastNonAsciiSrcEnd: bufferAsAscii.substr (no scan)
- * Source strings between: per-byte scan
+ * Experiment 29: Pre-compute cumulative non-ASCII byte count.
+ * O(1) ASCII check for any range: nonAsciiCum[end] - nonAsciiCum[pos] === 0.
  */
 
 // oxlint-disable prefer-const
@@ -10,9 +8,10 @@
 const textDecoder = new TextDecoder("utf-8", { ignoreBOM: true });
 
 let firstNonAsciiPos;
-let lastNonAsciiSrcEnd; // byte pos after last non-ASCII byte in source
+let lastNonAsciiSrcEnd;
 let bufferAsAscii;
 let strDataIsAscii;
+let nonAsciiCum; // cumulative non-ASCII count
 
 export function setup() {
   firstNonAsciiPos = sourceEndPos;
@@ -32,6 +31,14 @@ export function setup() {
       break;
     }
   }
+  // Build cumulative non-ASCII count for entire buffer
+  nonAsciiCum = new Uint32Array(uint8.length + 1);
+  let count = 0;
+  for (let i = 0; i < uint8.length; i++) {
+    nonAsciiCum[i] = count;
+    if (uint8[i] >= 128) count++;
+  }
+  nonAsciiCum[uint8.length] = count;
 }
 
 export function deserializeStr(pos) {
@@ -39,27 +46,24 @@ export function deserializeStr(pos) {
     len = uint32[pos32 + 2];
   if (len === 0) return "";
   pos = uint32[pos32];
-  // Source strings
   if (pos < sourceEndPos) {
     if (sourceIsAscii || pos + len <= firstNonAsciiPos) {
       return sourceText.substr(pos, len);
     }
-    // After all non-ASCII source bytes: guaranteed ASCII
     if (pos >= lastNonAsciiSrcEnd) {
       return bufferAsAscii.substr(pos, len);
     }
-    // In the non-ASCII zone: per-byte scan
+    // O(1) ASCII check using cumulative count
     let end = pos + len;
-    for (let i = pos; i < end; i++) {
-      if (uint8[i] >= 128) return textDecoder.decode(uint8.subarray(pos, end));
+    if (nonAsciiCum[end] === nonAsciiCum[pos]) {
+      return bufferAsAscii.substr(pos, len);
     }
-    return bufferAsAscii.substr(pos, len);
+    return textDecoder.decode(uint8.subarray(pos, end));
   }
-  // Non-source strings
   if (strDataIsAscii) return bufferAsAscii.substr(pos, len);
   let end = pos + len;
-  for (let i = pos; i < end; i++) {
-    if (uint8[i] >= 128) return textDecoder.decode(uint8.subarray(pos, end));
+  if (nonAsciiCum[end] === nonAsciiCum[pos]) {
+    return bufferAsAscii.substr(pos, len);
   }
-  return bufferAsAscii.substr(pos, len);
+  return textDecoder.decode(uint8.subarray(pos, end));
 }
