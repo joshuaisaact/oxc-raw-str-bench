@@ -1,7 +1,10 @@
 /**
- * Verify that fixture data created by `construct.ts` produces the correct strings.
+ * Verify that fixture data created by `construct.ts` produces the correct strings for all fixtures,
+ * by reference to the original oxc-parser `deserializeStr` implementation.
  *
- * Loads each fixture, injects its buffer into `oxc-parser`'s original `deserializeStr`,
+ * Also verify that all versions produce the same strings.
+ *
+ * Loads each fixture, injects its buffer into each version's `deserializeStr`,
  * and compares each result against the expected string.
  *
  * Usage: `node verify.ts`
@@ -9,50 +12,67 @@
 
 // oxlint-disable no-console
 
-import { loadAllFixtures } from "./common.ts";
-import { injectState, deserializeStrOriginal } from "oxc-parser/src-js/generated/deserialize/ts.js";
+import { loadAllFixtures, loadAllVersions } from "./common.ts";
+import {
+  injectState as injectStateOriginal,
+  deserializeStrOriginal,
+} from "oxc-parser/src-js/generated/deserialize/ts.js";
+
+const BASELINE = "current";
+
+const versions = await loadAllVersions(BASELINE);
+
+// Include oxc-parser's original `deserializeStr` as a reference version
+versions.unshift({
+  name: "original",
+  injectState: injectStateOriginal,
+  deserializeStr: deserializeStrOriginal,
+});
 
 const fixtures = loadAllFixtures();
 
 let allPassed = true;
 
-for (const fixture of fixtures) {
-  const { name, uint8, sourceText, sourceEndPos, strBinOffsets, strings } = fixture;
+for (const version of versions) {
+  console.log(`====================\n${version.name}\n====================`);
 
-  console.log(`--------------------\n${name}\n--------------------`);
+  for (const fixture of fixtures) {
+    const { name, uint8, sourceText, sourceEndPos, strBinOffsets, strings } = fixture;
 
-  // Inject our buffer into the deserializer's module-level state
-  injectState(uint8, sourceText, sourceEndPos);
+    console.log(`  ${name}`);
 
-  let failures = 0;
+    version.injectState(uint8, sourceText, sourceEndPos);
 
-  for (let i = 0; i < strBinOffsets.length; i++) {
-    const str = deserializeStrOriginal(strBinOffsets[i]);
-    if (str !== strings[i]) {
-      if (failures < 5) {
-        console.error(
-          `MISMATCH [${i}]:\n` +
-            `  pos:      ${strBinOffsets[i]}\n` +
-            `  expected: ${JSON.stringify(strings[i])}\n` +
-            `  got:      ${JSON.stringify(str)}\n`,
-        );
+    let failures = 0;
+
+    for (let i = 0; i < strBinOffsets.length; i++) {
+      const str = version.deserializeStr(strBinOffsets[i]);
+      if (str !== strings[i]) {
+        if (failures < 5) {
+          console.error(
+            `    MISMATCH [${i}]:\n` +
+              `      pos:      ${strBinOffsets[i]}\n` +
+              `      expected: ${JSON.stringify(strings[i])}\n` +
+              `      got:      ${JSON.stringify(str)}\n`,
+          );
+        }
+        failures++;
       }
-      failures++;
     }
-  }
 
-  if (failures === 0) {
-    console.log(`${strings.length} strings verified OK\n`);
-  } else {
-    console.error(`${failures}/${strings.length} FAILED\n`);
-    allPassed = false;
+    if (failures === 0) {
+      console.log(`    ${strings.length} strings OK`);
+    } else {
+      console.error(`    ${failures}/${strings.length} FAILED`);
+      allPassed = false;
+    }
   }
 }
 
-console.log("--------------------");
+console.log("====================");
 if (allPassed) {
-  console.log("All fixtures verified OK");
+  console.log("All versions verified OK");
 } else {
-  console.log("Some fixtures FAILED verification");
+  console.log("Some versions FAILED verification");
   process.exitCode = 1;
 }

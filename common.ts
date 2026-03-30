@@ -1,7 +1,8 @@
-// Shared fixture loading for verify and bench scripts.
+// Shared fixture loading and version compilation for verify and bench scripts.
 
 import fs from "node:fs";
 import { join as pathJoin } from "node:path";
+import { pathToFileURL } from "node:url";
 
 export interface Fixture {
   name: string;
@@ -17,8 +18,16 @@ export interface Fixture {
   strings: string[];
 }
 
+export interface Version {
+  name: string;
+  injectState(buffer: Uint8Array, sourceText: string, sourceByteLen: number): void;
+  deserializeStr(pos: number): string;
+}
+
 export const ROOT_DIR_PATH = import.meta.dirname;
 export const FIXTURES_DIR_PATH = pathJoin(ROOT_DIR_PATH, "fixtures");
+const VERSIONS_DIR = pathJoin(ROOT_DIR_PATH, "versions");
+const COMPILED_DIR = pathJoin(ROOT_DIR_PATH, "versions-compiled");
 
 const textDecoder = new TextDecoder("utf-8", { ignoreBOM: true });
 export const decodeStr = textDecoder.decode.bind(textDecoder);
@@ -90,4 +99,65 @@ function loadFixture(name: string): Fixture {
     strBinOffsets,
     strings,
   };
+}
+
+const BOILERPLATE_HEAD = `
+// oxlint-disable
+
+let uint8, uint32, float64, sourceText, sourceIsAscii, sourceEndPos;
+
+export function injectState(buffer, sourceTextInput, sourceByteLen) {
+  uint8 = buffer;
+  uint32 = new Uint32Array(buffer.buffer, buffer.byteOffset, buffer.byteLength >> 2);
+  float64 = new Float64Array(buffer.buffer, buffer.byteOffset, buffer.byteLength >> 3);
+
+  sourceText = sourceTextInput;
+  sourceIsAscii = sourceText.length === sourceByteLen;
+  sourceEndPos = sourceByteLen;
+
+  setup();
+}
+
+`;
+
+/**
+ * Compile versions and dynamically import them.
+ *
+ * Wraps each `.mjs` file in `versions` directory with boilerplate,
+ * writes compiled versions to `versions-compiled` directory,
+ * then imports and returns them.
+ *
+ * @param baseline - Name of the version to put first. Remaining versions are sorted alphabetically.
+ * @param skip - Names of versions to skip.
+ * @returns - Array of versions, sorted by name with baseline first.
+ */
+export async function loadAllVersions(baseline: string, skip: string[] = []): Promise<Version[]> {
+  fs.mkdirSync(COMPILED_DIR, { recursive: true });
+
+  const skipSet = new Set(skip);
+  const filenames = fs.readdirSync(VERSIONS_DIR);
+
+  const versions: Version[] = [];
+  for (const filename of filenames) {
+    if (!filename.endsWith(".mjs")) continue;
+    const name = filename.slice(0, -4);
+    if (skipSet.has(name)) continue;
+
+    const source = fs.readFileSync(pathJoin(VERSIONS_DIR, filename), "utf8");
+    const compiledPath = pathJoin(COMPILED_DIR, filename);
+    fs.writeFileSync(compiledPath, BOILERPLATE_HEAD + source);
+
+    const url = pathToFileURL(compiledPath).href;
+    // oxlint-disable-next-line no-await-in-loop
+    const mod = await import(url);
+    versions.push({ name, injectState: mod.injectState, deserializeStr: mod.deserializeStr });
+  }
+
+  versions.sort((a, b) => {
+    if (a.name === baseline) return -1;
+    if (b.name === baseline) return 1;
+    return a.name.localeCompare(b.name);
+  });
+
+  return versions;
 }

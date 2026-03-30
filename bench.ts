@@ -10,21 +10,9 @@
  * Usage: `node bench.ts`
  */
 
-// eslint-disable no-console, no-await-in-loop
+// eslint-disable no-console
 
-import fs from "node:fs";
-import { join as pathJoin } from "node:path";
-import { pathToFileURL } from "node:url";
-import { loadAllFixtures, ROOT_DIR_PATH } from "./common.ts";
-
-interface Version {
-  name: string;
-  injectState(buffer: Uint8Array, sourceText: string, sourceByteLen: number): void;
-  deserializeStr(pos: number): string;
-}
-
-const VERSIONS_DIR = pathJoin(ROOT_DIR_PATH, "versions");
-const COMPILED_DIR = pathJoin(ROOT_DIR_PATH, "versions-compiled");
+import { loadAllFixtures, loadAllVersions } from "./common.ts";
 
 // Version used as baseline for comparison
 const BASELINE = "current";
@@ -40,18 +28,8 @@ const MIN_ROUNDS = 5;
 const WARMUP_ROUNDS = 5;
 
 async function main() {
-  // Compile versions
-  const versionNames = compileVersions();
-
-  // Dynamic import of compiled versions
-  const versions: Version[] = [];
-  for (const name of versionNames) {
-    const url = pathToFileURL(pathJoin(COMPILED_DIR, `${name}.mjs`)).href;
-    const mod = await import(url);
-    versions.push({ name, injectState: mod.injectState, deserializeStr: mod.deserializeStr });
-  }
-
-  // Load fixtures
+  // Load versions and fixtures
+  const versions = await loadAllVersions(BASELINE, SKIP);
   const fixtures = loadAllFixtures();
 
   // Benchmark all versions against all fixtures.
@@ -120,6 +98,7 @@ async function main() {
   }
 
   // Format results: time + % difference vs baseline for non-baseline columns
+  const versionNames = versions.map((v) => v.name);
   const fixtureNames = fixtures.map((f) => f.name);
   const formatted = rawTimes.map((row) => {
     const baselineTime = row[0];
@@ -202,62 +181,6 @@ async function main() {
     ];
     console.log(rowParts.join(sep));
   }
-}
-
-const BOILERPLATE_HEAD = `
-// oxlint-disable
-
-let uint8, uint32, float64, sourceText, sourceIsAscii, sourceEndPos;
-
-export function injectState(buffer, sourceTextInput, sourceByteLen) {
-  uint8 = buffer;
-  uint32 = new Uint32Array(buffer.buffer, buffer.byteOffset, buffer.byteLength >> 2);
-  float64 = new Float64Array(buffer.buffer, buffer.byteOffset, buffer.byteLength >> 3);
-
-  sourceText = sourceTextInput;
-  sourceIsAscii = sourceText.length === sourceByteLen;
-  sourceEndPos = sourceByteLen;
-
-  setup();
-}
-
-`;
-
-/**
- * Compile versions.
- *
- * Wrap each `.mjs` file in `versions` directory with boilerplate and write to `versions-compiled` directory.
- *
- * @returns Array of version names.
- */
-function compileVersions(): string[] {
-  fs.mkdirSync(COMPILED_DIR, { recursive: true });
-
-  const skipSet = new Set(SKIP);
-
-  const filenames = fs.readdirSync(VERSIONS_DIR);
-
-  const versionNames: string[] = [];
-  for (const filename of filenames) {
-    if (!filename.endsWith(".mjs")) continue;
-    const name = filename.slice(0, -4);
-    if (skipSet.has(name)) continue;
-
-    versionNames.push(name);
-
-    const source = fs.readFileSync(pathJoin(VERSIONS_DIR, filename), "utf8");
-    const compiled = BOILERPLATE_HEAD + source;
-    fs.writeFileSync(pathJoin(COMPILED_DIR, filename), compiled);
-  }
-
-  versionNames.sort((a, b) => {
-    // Baseline always first, rest alphabetical
-    if (a === BASELINE) return -1;
-    if (b === BASELINE) return 1;
-    return a.localeCompare(b);
-  });
-
-  return versionNames;
 }
 
 await main();
