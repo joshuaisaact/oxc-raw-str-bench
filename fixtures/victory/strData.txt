@@ -1,0 +1,83 @@
+
+
+
+    z
+    A 
+    L 
+    A 
+    L 
+    A 
+    L 
+    A 
+    L 
+    L 
+    L 
+    z
+    A 
+    L 
+    A 
+    L 
+    A 
+    L 
+    A 
+    L 
+    L 
+    L " is not a valid behavior. Choose from ["" has been deprecated " property of "",
+        
+      z
+      h-
+      v-
+      h
+      z
+      v
+      h-
+      v
+      h
+      v
+      h
+      v-
+      h
+      v-
+      h-
+      v-
+      M 
+      z
+      v
+      h-
+      v
+      h
+      v
+      h
+      v-
+      h
+      v-
+      h-
+      v-
+      M 
+      z
+      L 
+      L 
+      z
+      L 
+      L 
+      z
+      l 
+      l -
+      l -
+      l 
+      z
+      h-
+      v-
+      h,0
+      a , 0
+      a 
+      m 
+
+        data should not be given as in array for x
+      
+        data prop may only take an array of objects with a unique
+        independent variable. Make sure your x values are distinct.
+       
+
+Valid keys: 
+Bad object: \$&\)$^hsla\(\)$^hsl\(\)$^rgba\(\)$^rgba\(\)$^rgb\(\)$^rgb\(\s*([+-]?\d*\.?\d+(?:[eE][+-]?\d+)?)%\s*\s*([+-]?\d*\.?\d+(?:[eE][+-]?\d+)?)\s*\s*([+-]?\d+)\s*

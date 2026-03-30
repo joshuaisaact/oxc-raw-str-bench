@@ -1,0 +1,2 @@
+v-model cannot be used on a prop, because local prop bindings are not writable.
+Use a v-bind binding combined with a v-on listener that emits update:x event instead.Unquoted attribute value cannot contain U+0022 ("), U+0027 ('), U+003C (<), U+003D (=), and U+0060 (`).Attribute name cannot contain U+0022 ("), U+0027 ('), and U+003C (<).
