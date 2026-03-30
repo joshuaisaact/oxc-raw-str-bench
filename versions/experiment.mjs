@@ -1,6 +1,8 @@
 /**
- * Experiment 24b: Fix source boundary handling. Source strings always
- * go through sourceText path. Non-source strings use bufferAsAscii.
+ * Experiment 26: Add lastNonAsciiSrcEnd to extend fast path.
+ * Source strings before firstNonAsciiPos: sourceText.substr
+ * Source strings after lastNonAsciiSrcEnd: bufferAsAscii.substr (no scan)
+ * Source strings between: per-byte scan
  */
 
 // oxlint-disable prefer-const
@@ -8,15 +10,17 @@
 const textDecoder = new TextDecoder("utf-8", { ignoreBOM: true });
 
 let firstNonAsciiPos;
+let lastNonAsciiSrcEnd; // byte pos after last non-ASCII byte in source
 let bufferAsAscii;
 let strDataIsAscii;
 
 export function setup() {
   firstNonAsciiPos = sourceEndPos;
+  lastNonAsciiSrcEnd = 0;
   for (let i = 0; i < sourceEndPos; i++) {
     if (uint8[i] >= 128) {
-      firstNonAsciiPos = i;
-      break;
+      if (firstNonAsciiPos === sourceEndPos) firstNonAsciiPos = i;
+      lastNonAsciiSrcEnd = i + 1;
     }
   }
   const latin1Decoder = new TextDecoder("latin1");
@@ -40,7 +44,11 @@ export function deserializeStr(pos) {
     if (sourceIsAscii || pos + len <= firstNonAsciiPos) {
       return sourceText.substr(pos, len);
     }
-    // Source string past firstNonAsciiPos - check bytes
+    // After all non-ASCII source bytes: guaranteed ASCII
+    if (pos >= lastNonAsciiSrcEnd) {
+      return bufferAsAscii.substr(pos, len);
+    }
+    // In the non-ASCII zone: per-byte scan
     let end = pos + len;
     for (let i = pos; i < end; i++) {
       if (uint8[i] >= 128) return textDecoder.decode(uint8.subarray(pos, end));
