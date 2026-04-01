@@ -99,7 +99,7 @@ export function deserializeStr(pos) {
   if (len === 0) return "";
   pos = uint32[pos32];
 
-  if (pos < sourceEndPos) {
+  if (pos + len <= sourceEndPos) {
     if (sourceIsAscii) return sourceText.substr(pos, len);
 
     // Use the sparse table to convert byte offsets to UTF-16 offsets.
